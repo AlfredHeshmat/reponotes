@@ -1,8 +1,9 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const pool = require("../config/db");
-
+const jwt = require("jsonwebtoken");
 const router = express.Router();
+const protect = require("../middleware/authMiddleware");
 
 // GET all users
 router.get("/", async (req, res) => {
@@ -98,9 +99,23 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    // Generate JWT
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      }
+    );
+
+    // Return token
     res.json({
       success: true,
       message: "Login successful",
+      token,
       user: {
         id: user.id,
         username: user.username,
@@ -110,10 +125,38 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Login failed",
+      message: "Failed to login",
       error: error.message,
     });
   }
 });
+
+router.get("/me", protect, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, username, email, created_at FROM users WHERE id = $1",
+      [req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      user: result.rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user profile",
+      error: error.message,
+    });
+  }
+});
+
 
 module.exports = router;
