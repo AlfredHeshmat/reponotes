@@ -3,6 +3,7 @@ const cors = require("cors");
 const pool = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const app = express();
+const repositoryRoutes = require("./routes/repositoryRoutes");
 
 app.use(cors());
 app.use(express.json());
@@ -35,4 +36,5 @@ app.get("/api/db-test", async (req, res) => {
   }
 });
 app.use("/api/users", userRoutes);
+app.use("/api/repositories", repositoryRoutes);
 module.exports = app;
